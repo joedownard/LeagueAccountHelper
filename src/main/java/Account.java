@@ -1,5 +1,3 @@
-package main;
-
 public class Account {
     public String accName;
     public String password;
@@ -30,6 +28,23 @@ public class Account {
 
     public String getChampPool() {
         return champPool;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Account) {
+            return ((Account) obj).accName.equals(accName) &&
+                    ((Account) obj).password.equals(password) &&
+                    ((Account) obj).ingameName.equals(ingameName) &&
+                    ((Account) obj).level.equals(level) &&
+                    ((Account) obj).rank.equals(rank) &&
+                    ((Account) obj).champPool.equals(champPool);
+        }
+        return false;
+    }
+
+    public Account () {
+
     }
 
     public Account(String accName, String password, String ingameName, String level, String rank, String champPool) {
