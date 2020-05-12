@@ -6,6 +6,7 @@ import com.merakianalytics.orianna.types.common.Queue;
 import com.merakianalytics.orianna.types.common.Region;
 import com.merakianalytics.orianna.types.core.league.LeagueEntry;
 import com.merakianalytics.orianna.types.core.summoner.Summoner;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -15,7 +16,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 
@@ -37,7 +41,8 @@ public class MainController implements Initializable {
     @FXML public Button addButton;
     @FXML public Button deleteButton;
     @FXML public Button updateButton;
-    @FXML public ProgressBar updateProgressBar;
+    @FXML public TextField apiKeyBox;
+    @FXML public Button editButton;
 
     @FXML private TableColumn<Account, String> accName;
     @FXML private TableColumn<Account, String> password;
@@ -47,6 +52,7 @@ public class MainController implements Initializable {
     @FXML private TableColumn<Account, String> champPool;
 
     List<Account> accountList = new ArrayList<>();
+    String apikey = "RGAPI-8e470e76-8828-44b7-b25a-54f6edbeb83d";
 
     public void copyButtonClicked(MouseEvent mouseEvent) {
         String response = mouseEvent.getSource().equals(copyNameButton) ? accountTable.getSelectionModel().getSelectedItem().accName : accountTable.getSelectionModel().getSelectedItem().password;
@@ -67,7 +73,7 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        updateProgressBar.setVisible(false);
+        apiKeyBox.setText("RGAPI-8e470e76-8828-44b7-b25a-54f6edbeb83d");
         try {
             readFromFile();
         } catch (IOException e) {
@@ -86,13 +92,21 @@ public class MainController implements Initializable {
     }
 
     private void writeToFile () throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);;
-        objectMapper.writeValue(new File(System.getProperty("user.home") + "\\accountList.json"), accountList);
+        ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        apikey = apiKeyBox.getText();
+
+        File directory = new File(System.getProperty("user.home") + "\\LAH");
+        if (!directory.exists()) directory.mkdir();
+
+        objectMapper.writeValue(new File(System.getProperty("user.home") + "\\LAH\\apikey.json"), apikey);
+        objectMapper.writeValue(new File(System.getProperty("user.home") + "\\LAH\\accountList.json"), accountList);
     }
 
     private void readFromFile () throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
-        accountList = objectMapper.readValue(new File(System.getProperty("user.home") + "\\accountList.json"), new TypeReference<List<Account>>(){});
+        apikey =  objectMapper.readValue(new File(System.getProperty("user.home") + "\\LAH\\apikey.json"), new TypeReference<String>(){});
+        accountList = objectMapper.readValue(new File(System.getProperty("user.home") + "\\LAH\\accountList.json"), new TypeReference<List<Account>>(){});
+        apiKeyBox.setText(apikey);
     }
 
     public void addToTable (Account account) throws IOException {
@@ -118,16 +132,16 @@ public class MainController implements Initializable {
     public void updateTable () {
         if (!accountList.isEmpty()) {
             accountTable.getItems().setAll(accountList);
+        } else {
+            accountTable.getItems().clear();
         }
+        accountTable.refresh();
     }
 
     public void updateButtonClicked(MouseEvent mouseEvent) throws IOException {
-        updateProgressBar.setVisible(true);
-        Orianna.setRiotAPIKey("RGAPI-8e470e76-8828-44b7-b25a-54f6edbeb83d");
+        Orianna.setRiotAPIKey(apiKeyBox.getText());
         Orianna.setDefaultRegion(Region.EUROPE_WEST);
 
-        int listSize = accountList.size();
-        int i = 0;
         for (Account acc : accountList) {
             String summonerName = acc.ingameName;
             Summoner summoner = Summoner.named(summonerName).withRegion(Region.EUROPE_WEST).get();
@@ -147,10 +161,59 @@ public class MainController implements Initializable {
             String level = String.valueOf(summoner.getLevel());
             acc.rank = rank;
             acc.level = level;
-            updateProgressBar.setProgress((double)++i/(double)listSize);
         }
-        updateProgressBar.setVisible(false);
         updateTable();
         writeToFile();
+    }
+
+    public void editButtonClicked(MouseEvent mouseEvent) throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("addAccount.fxml"));
+        Parent addGUI = loader.load();
+
+        Account toRemove = new Account (
+                accountTable.getSelectionModel().getSelectedItem().accName,
+                accountTable.getSelectionModel().getSelectedItem().password,
+                accountTable.getSelectionModel().getSelectedItem().ingameName,
+                accountTable.getSelectionModel().getSelectedItem().level,
+                accountTable.getSelectionModel().getSelectedItem().rank,
+                accountTable.getSelectionModel().getSelectedItem().champPool
+        );
+        accountList.removeIf(acc -> acc.equals(toRemove));
+
+        AddController addController =  loader.getController();
+        addController.editAccount(toRemove);
+
+        Stage stage = (Stage) addButton.getScene().getWindow();
+        stage.setScene(new Scene(addGUI, 370, 400));
+
+        updateTable();
+        writeToFile();
+    }
+
+
+    public void keyPressed(KeyEvent keyEvent) {
+
+        if (keyEvent.getCode().equals(KeyCode.UP)) {
+            int fixedIndex = accountTable.getSelectionModel().getFocusedIndex() + 1;
+            Account temp = accountList.get(fixedIndex);
+            accountList.set(fixedIndex, accountList.get(fixedIndex - 1));
+            accountList.set(fixedIndex - 1, temp);
+            accountTable.getSelectionModel().select(fixedIndex);
+
+        } else if (keyEvent.getCode().equals(KeyCode.DOWN)) {
+            int fixedIndex = accountTable.getSelectionModel().getFocusedIndex() - 1;
+            Account temp = accountList.get(fixedIndex);
+            accountList.set(fixedIndex, accountList.get(fixedIndex + 1));
+            accountList.set(fixedIndex + 1, temp);
+            accountTable.getSelectionModel().select(fixedIndex);
+        }
+
+        updateTable();
+
+        try {
+            writeToFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

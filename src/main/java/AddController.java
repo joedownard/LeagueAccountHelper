@@ -36,6 +36,17 @@ public class AddController {
         mainController.addToTable(newAccount);
 
         Stage stage = (Stage) addAccountButton.getScene().getWindow();
-        stage.setScene(new Scene(mainGUI, 555, 400));
+        stage.setScene(new Scene(mainGUI, 630, 400));
     }
+
+    public void editAccount(Account account) throws IOException {
+        accNameField.setText(account.accName);
+        passField.setText(account.password);
+        ingameNameField.setText(account.ingameName);
+        levelField.setText(account.level);
+        rankField.setText(account.rank);
+        champPoolField.setText(account.champPool);
+    }
+
+
 }

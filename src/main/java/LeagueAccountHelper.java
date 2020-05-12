@@ -11,7 +11,7 @@ public class LeagueAccountHelper extends Application {
         Parent root = FXMLLoader.load(getClass().getResource("main.fxml"));
 
         primaryStage.setTitle("League Account Helper");
-        primaryStage.setScene(new Scene(root, 586, 400));
+        primaryStage.setScene(new Scene(root, 630, 400));
         primaryStage.show();
         primaryStage.setResizable(false);
         primaryStage.setMinWidth(primaryStage.getWidth());
