@@ -52,10 +52,11 @@ public class MainController implements Initializable {
     @FXML private TableColumn<Account, String> champPool;
 
     List<Account> accountList = new ArrayList<>();
-    String apikey = "RGAPI-8e470e76-8828-44b7-b25a-54f6edbeb83d";
+    String apikey;
 
     public void copyButtonClicked(MouseEvent mouseEvent) {
-        String response = mouseEvent.getSource().equals(copyNameButton) ? accountTable.getSelectionModel().getSelectedItem().accName : accountTable.getSelectionModel().getSelectedItem().password;
+        Account account = findAccount(accountTable.getSelectionModel().getSelectedItem().accName);
+        String response = mouseEvent.getSource().equals(copyNameButton) ? account.getAccName() : account.getPassword();
         Toolkit.getDefaultToolkit()
                 .getSystemClipboard()
                 .setContents(
@@ -73,14 +74,13 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        apiKeyBox.setText("RGAPI-8e470e76-8828-44b7-b25a-54f6edbeb83d");
         try {
             readFromFile();
         } catch (IOException e) {
             e.printStackTrace();
         }
         accName.setCellValueFactory(new PropertyValueFactory<>("accName"));
-        password.setCellValueFactory(new PropertyValueFactory<>("password"));
+        password.setCellValueFactory(new PropertyValueFactory<>("censoredPassword"));
         ingameName.setCellValueFactory(new PropertyValueFactory<>("ingameName"));
         level.setCellValueFactory(new PropertyValueFactory<>("level"));
         rank.setCellValueFactory(new PropertyValueFactory<>("rank"));
@@ -91,51 +91,11 @@ public class MainController implements Initializable {
         }
     }
 
-    private void writeToFile () throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-        apikey = apiKeyBox.getText();
-
-        File directory = new File(System.getProperty("user.home") + "\\LAH");
-        if (!directory.exists()) directory.mkdir();
-
-        objectMapper.writeValue(new File(System.getProperty("user.home") + "\\LAH\\apikey.json"), apikey);
-        objectMapper.writeValue(new File(System.getProperty("user.home") + "\\LAH\\accountList.json"), accountList);
-    }
-
-    private void readFromFile () throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        apikey =  objectMapper.readValue(new File(System.getProperty("user.home") + "\\LAH\\apikey.json"), new TypeReference<String>(){});
-        accountList = objectMapper.readValue(new File(System.getProperty("user.home") + "\\LAH\\accountList.json"), new TypeReference<List<Account>>(){});
-        apiKeyBox.setText(apikey);
-    }
-
-    public void addToTable (Account account) throws IOException {
-        accountList.add(account);
-        updateTable();
-        writeToFile();
-    }
-
     public void deleteButtonClicked(MouseEvent mouseEvent) throws IOException {
-        Account toRemove = new Account (
-                accountTable.getSelectionModel().getSelectedItem().accName,
-                accountTable.getSelectionModel().getSelectedItem().password,
-                accountTable.getSelectionModel().getSelectedItem().ingameName,
-                accountTable.getSelectionModel().getSelectedItem().level,
-                accountTable.getSelectionModel().getSelectedItem().rank,
-                accountTable.getSelectionModel().getSelectedItem().champPool
-        );
-        accountList.removeIf(acc -> acc.equals(toRemove));
+        Account toRemove = findAccount(accountTable.getSelectionModel().getSelectedItem().accName);
+        accountList.remove(toRemove);
         updateTable();
         writeToFile();
-    }
-
-    public void updateTable () {
-        if (!accountList.isEmpty()) {
-            accountTable.getItems().setAll(accountList);
-        } else {
-            accountTable.getItems().clear();
-        }
-        accountTable.refresh();
     }
 
     public void updateButtonClicked(MouseEvent mouseEvent) throws IOException {
@@ -170,15 +130,8 @@ public class MainController implements Initializable {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("addAccount.fxml"));
         Parent addGUI = loader.load();
 
-        Account toRemove = new Account (
-                accountTable.getSelectionModel().getSelectedItem().accName,
-                accountTable.getSelectionModel().getSelectedItem().password,
-                accountTable.getSelectionModel().getSelectedItem().ingameName,
-                accountTable.getSelectionModel().getSelectedItem().level,
-                accountTable.getSelectionModel().getSelectedItem().rank,
-                accountTable.getSelectionModel().getSelectedItem().champPool
-        );
-        accountList.removeIf(acc -> acc.equals(toRemove));
+        Account toRemove = findAccount(accountTable.getSelectionModel().getSelectedItem().accName);
+        accountList.remove(toRemove);
 
         AddController addController =  loader.getController();
         addController.editAccount(toRemove);
@@ -192,7 +145,6 @@ public class MainController implements Initializable {
 
 
     public void keyPressed(KeyEvent keyEvent) {
-
         if (keyEvent.getCode().equals(KeyCode.UP)) {
             int fixedIndex = accountTable.getSelectionModel().getFocusedIndex() + 1;
             Account temp = accountList.get(fixedIndex);
@@ -215,5 +167,45 @@ public class MainController implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void writeToFile () throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        apikey = apiKeyBox.getText();
+
+        File directory = new File(System.getProperty("user.home") + "\\LAH");
+        if (!directory.exists()) directory.mkdir();
+
+        objectMapper.writeValue(new File(System.getProperty("user.home") + "\\LAH\\apikey.json"), apikey);
+        objectMapper.writeValue(new File(System.getProperty("user.home") + "\\LAH\\accountList.json"), accountList);
+    }
+
+    private void readFromFile () throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        apikey =  objectMapper.readValue(new File(System.getProperty("user.home") + "\\LAH\\apikey.json"), new TypeReference<String>(){});
+        accountList = objectMapper.readValue(new File(System.getProperty("user.home") + "\\LAH\\accountList.json"), new TypeReference<List<Account>>(){});
+        apiKeyBox.setText(apikey);
+    }
+
+    public void addToTable (Account account) throws IOException {
+        accountList.add(account);
+        updateTable();
+        writeToFile();
+    }
+
+    public void updateTable () {
+        if (!accountList.isEmpty()) {
+            accountTable.getItems().setAll(accountList);
+        } else {
+            accountTable.getItems().clear();
+        }
+        accountTable.refresh();
+    }
+
+    public Account findAccount (String accountName) {
+        for (Account acc : accountList) {
+            if (acc.getAccName().equals(accountName)) return acc;
+        }
+        return null;
     }
 }

@@ -14,6 +14,10 @@ public class Account {
         return password;
     }
 
+    public String getCensoredPassword() {
+        return "*******";
+    }
+
     public String getIngameName() {
         return ingameName;
     }
